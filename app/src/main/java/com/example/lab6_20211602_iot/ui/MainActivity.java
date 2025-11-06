@@ -5,9 +5,12 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 
 import com.example.lab6_20211602_iot.R;
 import com.example.lab6_20211602_iot.auth.LoginActivity;
@@ -24,6 +27,7 @@ public class MainActivity extends AppCompatActivity {
 
     private FirebaseAuth auth;
     private GoogleSignInClient googleClient;
+    private BottomNavigationView bottomNav;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,32 +36,67 @@ public class MainActivity extends AppCompatActivity {
 
         auth = FirebaseAuth.getInstance();
 
-        // Configurar toolbar
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        // Configurar Google client (para logout)
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken(getString(R.string.default_web_client_id))
                 .requestEmail()
                 .build();
         googleClient = GoogleSignIn.getClient(this, gso);
 
-        // Configurar BottomNav
-        BottomNavigationView nav = findViewById(R.id.bottomNav);
-        nav.setOnItemSelectedListener(item -> {
-            Fragment frag;
-            if (item.getItemId() == R.id.nav_resumen) frag = new ResumenFragment();
-            else frag = new TareasFragment();
-            getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.container, frag)
-                    .commit();
-            return true;
+        bottomNav = findViewById(R.id.bottomNav);
+        bottomNav.setOnItemSelectedListener(item -> {
+            if (item.getItemId() == R.id.nav_resumen) {
+                clearBackStack();
+                replaceFragment(new ResumenFragment(), /*addToBackStack*/ false);
+                return true;
+            } else if (item.getItemId() == R.id.nav_tareas) {
+                replaceFragment(new TareasFragment(), /*addToBackStack*/ true);
+                return true;
+            }
+            return false;
         });
 
-        // Fragment inicial
         if (savedInstanceState == null) {
-            nav.setSelectedItemId(R.id.nav_tareas);
+            bottomNav.setSelectedItemId(R.id.nav_tareas);
+        }
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override public void handleOnBackPressed() {
+                FragmentManager fm = getSupportFragmentManager();
+
+                if (fm.getBackStackEntryCount() > 0) {
+                    // Volver a la pantalla anterior
+                    fm.popBackStack();
+                    return;
+                }
+
+                if (bottomNav.getSelectedItemId() != R.id.nav_resumen) {
+                    bottomNav.setSelectedItemId(R.id.nav_resumen);
+                    return;
+                }
+
+                finish();
+            }
+        });
+    }
+
+    private void replaceFragment(@NonNull Fragment fragment, boolean addToBackStack) {
+        FragmentTransaction tx = getSupportFragmentManager()
+                .beginTransaction()
+                .setReorderingAllowed(true)
+                .replace(R.id.container, fragment);
+        if (addToBackStack) {
+            tx.addToBackStack(fragment.getClass().getName());
+        }
+        tx.commit();
+    }
+
+    private void clearBackStack() {
+        FragmentManager fm = getSupportFragmentManager();
+        if (fm.getBackStackEntryCount() > 0) {
+            fm.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
         }
     }
 
