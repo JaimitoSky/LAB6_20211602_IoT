@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Lab6_20211602_IoT</string>
+
+    <string name="email">Correo</string>
+    <string name="password">Contraseña</string>
+    <string name="sign_in">Iniciar sesión</string>
+    <string name="go_to_register">Crear cuenta</string>
+    <string name="register">Registrarme</string>
+    <string name="go_to_login">Ya tengo cuenta</string>
+
+
+    <!-- Main -->
+    <string name="tab_tasks">Tareas</string>
+    <string name="tab_summary">Resumen</string>
+    <string name="action_logout">Cerrar sesión</string>
+</resources>
