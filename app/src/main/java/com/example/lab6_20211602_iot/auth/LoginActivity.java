@@ -11,7 +11,6 @@ import androidx.appcompat.app.AppCompatActivity;
 
 
 import com.example.lab6_20211602_iot.R;
-import com.example.lab6_20211602_iot.ui.MainActivity;
 import com.example.lab6_20211602_iot.util.Toaster;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;

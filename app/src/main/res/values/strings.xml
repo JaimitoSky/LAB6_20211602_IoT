@@ -14,4 +14,5 @@
     <string name="tab_summary">Resumen</string>
     <string name="action_logout">Cerrar sesión</string>
     <string name="lab_6_iot">Lab 6 IoT</string>
+    <string name="a_adir">Añadir</string>
 </resources>
