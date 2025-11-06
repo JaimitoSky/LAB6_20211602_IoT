@@ -21,6 +21,8 @@ import com.github.mikephil.charting.components.Legend;
 import com.github.mikephil.charting.data.PieData;
 import com.github.mikephil.charting.data.PieDataSet;
 import com.github.mikephil.charting.data.PieEntry;
+import com.google.android.material.snackbar.Snackbar;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.ValueEventListener;
@@ -40,14 +42,20 @@ public class ResumenFragment extends Fragment {
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_resumen, container, false);
+
         tvTotal = v.findViewById(R.id.tvTotal);
         tvPend  = v.findViewById(R.id.tvPend);
         tvComp  = v.findViewById(R.id.tvComp);
         pie     = v.findViewById(R.id.pieChart);
 
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            Snackbar.make(v, "Sesión inválida. Inicia sesión nuevamente.", Snackbar.LENGTH_LONG).show();
+            return v;
+        }
+
         repo = new TareaRepository();
         setupChart();
-        subscribeCounts();
+        subscribeCounts(v);
 
         return v;
     }
@@ -69,7 +77,7 @@ public class ResumenFragment extends Fragment {
         l.setWordWrapEnabled(true);
     }
 
-    private void subscribeCounts() {
+    private void subscribeCounts(View root) {
         repo.ref().addValueEventListener(new ValueEventListener() {
             @Override public void onDataChange(@NonNull DataSnapshot snapshot) {
                 int total = 0, comp = 0, pend = 0;
@@ -81,7 +89,12 @@ public class ResumenFragment extends Fragment {
                 }
                 updateUI(total, comp, pend);
             }
-            @Override public void onCancelled(@NonNull DatabaseError error) { }
+
+            @Override public void onCancelled(@NonNull DatabaseError error) {
+                if (getView() != null) {
+                    Snackbar.make(root, "DB error: " + error.getMessage(), Snackbar.LENGTH_LONG).show();
+                }
+            }
         });
     }
 
@@ -92,19 +105,16 @@ public class ResumenFragment extends Fragment {
         tvPend.setText("Pendientes: " + pend);
 
         List<PieEntry> entries = new ArrayList<>();
-        // Evita entradas cero para que el gráfico no falle con datasets vacíos
         if (pend > 0) entries.add(new PieEntry(pend, "Pendientes"));
         if (comp > 0) entries.add(new PieEntry(comp, "Completadas"));
         if (entries.isEmpty()) {
-            // Si no hay tareas, mostramos un solo sector 1 para placeholder
             entries.add(new PieEntry(1f, "Sin tareas"));
         }
 
         PieDataSet ds = new PieDataSet(entries, "");
-        // Paleta sencilla (sin especificar demasiados colores para evitar warning)
         ArrayList<Integer> colors = new ArrayList<>();
-        colors.add(Color.parseColor("#FF9800")); // Pendientes (naranja)
-        colors.add(Color.parseColor("#4CAF50")); // Completadas (verde)
+        colors.add(Color.parseColor("#FF9800"));
+        colors.add(Color.parseColor("#4CAF50"));
         ds.setColors(colors);
         ds.setSliceSpace(3f);
         ds.setValueTextColor(Color.WHITE);

@@ -21,6 +21,7 @@ import com.example.lab6_20211602_iot.model.Tarea;
 import com.example.lab6_20211602_iot.repository.TareaRepository;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.ValueEventListener;
@@ -46,12 +47,19 @@ public class TareasFragment extends Fragment implements TareasAdapter.Listener {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_tareas, container, false);
+
         rv = v.findViewById(R.id.rv);
         fab = v.findViewById(R.id.fabAdd);
 
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new TareasAdapter(this);
         rv.setAdapter(adapter);
+
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            Snackbar.make(v, "Sesión inválida. Inicia sesión nuevamente.", Snackbar.LENGTH_LONG).show();
+            fab.setEnabled(false);
+            return v;
+        }
 
         repo = new TareaRepository();
         fab.setOnClickListener(x -> showAddOrEditDialog(null));
@@ -69,10 +77,17 @@ public class TareasFragment extends Fragment implements TareasAdapter.Listener {
                     Tarea t = child.getValue(Tarea.class);
                     if (t != null) list.add(t);
                 }
-                list.sort(Comparator.comparingLong(o -> o.fechaLimite));
+                // Compatibilidad amplia (API < 24)
+                Collections.sort(list, Comparator.comparingLong(o -> o.fechaLimite));
                 adapter.setItems(list);
             }
-            @Override public void onCancelled(@NonNull DatabaseError error) {}
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                if (getView() != null) {
+                    Snackbar.make(requireView(), "DB error: " + error.getMessage(), Snackbar.LENGTH_LONG).show();
+                }
+            }
         });
     }
 
@@ -84,6 +99,7 @@ public class TareasFragment extends Fragment implements TareasAdapter.Listener {
         CheckBox chk      = content.findViewById(R.id.chkEstado);
 
         final Calendar cal = Calendar.getInstance();
+
         etFecha.setOnClickListener(v -> new DatePickerDialog(requireContext(), (dp, y, m, d) -> {
             cal.set(y, m, d, 0, 0, 0);
             etFecha.setText(sdf.format(new Date(cal.getTimeInMillis())));
@@ -107,27 +123,36 @@ public class TareasFragment extends Fragment implements TareasAdapter.Listener {
                     boolean estado = chk.isChecked();
 
                     if (TextUtils.isEmpty(titulo) || TextUtils.isEmpty(fStr)) {
-                        Snackbar.make(requireView(), "Completa título y fecha", Snackbar.LENGTH_SHORT).show();
+                        if (getView() != null) {
+                            Snackbar.make(requireView(), "Completa título y fecha", Snackbar.LENGTH_SHORT).show();
+                        }
                         return;
                     }
 
                     long fechaMs = cal.getTimeInMillis();
+                    if (fechaMs <= 0) fechaMs = System.currentTimeMillis();
 
                     if (edit == null) {
                         Tarea t = new Tarea(null, titulo, desc, fechaMs, estado);
-                        repo.add(t).addOnSuccessListener(x ->
-                                        Snackbar.make(requireView(), "Tarea registrada", Snackbar.LENGTH_SHORT).show())
-                                .addOnFailureListener(e ->
-                                        Snackbar.make(requireView(), "Error: " + e.getMessage(), Snackbar.LENGTH_LONG).show());
+                        repo.add(t)
+                                .addOnSuccessListener(x -> {
+                                    if (getView() != null) Snackbar.make(requireView(), "Tarea registrada", Snackbar.LENGTH_SHORT).show();
+                                })
+                                .addOnFailureListener(e -> {
+                                    if (getView() != null) Snackbar.make(requireView(), "Error: " + e.getMessage(), Snackbar.LENGTH_LONG).show();
+                                });
                     } else {
                         edit.titulo = titulo;
                         edit.descripcion = desc;
                         edit.fechaLimite = fechaMs;
                         edit.estado = estado;
-                        repo.update(edit).addOnSuccessListener(x ->
-                                        Snackbar.make(requireView(), "Tarea actualizada", Snackbar.LENGTH_SHORT).show())
-                                .addOnFailureListener(e ->
-                                        Snackbar.make(requireView(), "Error: " + e.getMessage(), Snackbar.LENGTH_LONG).show());
+                        repo.update(edit)
+                                .addOnSuccessListener(x -> {
+                                    if (getView() != null) Snackbar.make(requireView(), "Tarea actualizada", Snackbar.LENGTH_SHORT).show();
+                                })
+                                .addOnFailureListener(e -> {
+                                    if (getView() != null) Snackbar.make(requireView(), "Error: " + e.getMessage(), Snackbar.LENGTH_LONG).show();
+                                });
                     }
                 })
                 .setNegativeButton("Cancelar", null)
@@ -151,10 +176,12 @@ public class TareasFragment extends Fragment implements TareasAdapter.Listener {
                 .setTitle("Eliminar tarea")
                 .setMessage("¿Seguro que deseas eliminarla?")
                 .setPositiveButton("Eliminar", (d, w) -> repo.delete(t.id)
-                        .addOnSuccessListener(x ->
-                                Snackbar.make(requireView(), "Tarea eliminada", Snackbar.LENGTH_SHORT).show())
-                        .addOnFailureListener(e ->
-                                Snackbar.make(requireView(), "Error: " + e.getMessage(), Snackbar.LENGTH_LONG).show()))
+                        .addOnSuccessListener(x -> {
+                            if (getView() != null) Snackbar.make(requireView(), "Tarea eliminada", Snackbar.LENGTH_SHORT).show();
+                        })
+                        .addOnFailureListener(e -> {
+                            if (getView() != null) Snackbar.make(requireView(), "Error: " + e.getMessage(), Snackbar.LENGTH_LONG).show();
+                        }))
                 .setNegativeButton("Cancelar", null)
                 .show();
     }

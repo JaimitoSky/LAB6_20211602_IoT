@@ -15,4 +15,14 @@
     <string name="action_logout">Cerrar sesión</string>
     <string name="lab_6_iot">Lab 6 IoT</string>
     <string name="a_adir">Añadir</string>
+    <string name="cerrar_sesi_n">Cerrar sesión</string>
+
+    <string name="facebook_app_id">no puedo verificar mi cuenta en meta</string>
+    <string name="fb_login_protocol_scheme">no me llega SMS , probe con 2 celulares</string>
+
+    <string name="default_web_client_id">
+    345225963849-9lg44tqin0ggfe87ej3lm1h23groggq5.apps.googleusercontent.com
+</string>
+
+
 </resources>
