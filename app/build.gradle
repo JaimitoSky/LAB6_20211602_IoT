@@ -51,4 +51,6 @@ dependencies {
     implementation libs.recyclerview
     implementation libs.fragment
     implementation libs.activity.v192
+    implementation libs.mpandroidchart
+
 }
